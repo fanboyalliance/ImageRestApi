@@ -6,7 +6,7 @@ namespace ImageRestApi.Controllers
     public class RequestForm
     {
         /// <summary>
-        /// json of base64 string arrays
+        /// json array of base64 strings
         /// </summary>
         public string Json { get; set; }
 

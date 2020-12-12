@@ -2,10 +2,9 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
-using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
-using ImageProcessor;
+using ImageMagick;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
@@ -18,6 +17,8 @@ namespace ImageRestApi.Controllers
     {
         private readonly ILogger<ImageController> _logger;
         private static HttpClient _imageHttpClient = new HttpClient();
+        private static MagickGeometry _resizer = new MagickGeometry(100, 100) {IgnoreAspectRatio = true};
+
         public ImageController(ILogger<ImageController> logger)
         {
             _logger = logger;
@@ -28,36 +29,46 @@ namespace ImageRestApi.Controllers
         [HttpPost]
         public async Task<IActionResult> PostImage([FromForm]RequestForm request)
         {
-            await SaveFormFiles(request);
-            await DownloadImage(request.ImageUrl);
-            await SaveBase64Image(request.Json);
+            try
+            {
+                await SaveFormFiles(request);
+                await DownloadImage(request.ImageUrl);
+                await SaveBase64Image(request.Json);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"{ex.Message} {ex.StackTrace}");
+                throw;
+            }
         
             return Ok();
         }
 
         private async Task SaveFormFiles(RequestForm request)
         {
-            if (request.Files?.Any() == true)
+            if (request.Files == null)
             {
-                _logger.LogInformation($"Downloading {request.Files.Count} files");
+                return;
             }
+            _logger.LogInformation($"Downloading {request.Files.Count} files");
 
-            request.Files?.ForEach(
-                async formFile =>
+            foreach (var formFile in request.Files)
+            {
+                if (formFile.Length > 0)
                 {
-                    if (formFile.Length > 0)
+                    var filePath = Path.Combine(Directory.GetCurrentDirectory(), $"Upload-{Guid.NewGuid().ToString()}.jpg");
+                    using (var stream = System.IO.File.Create(filePath))
                     {
-                        var filePath = Path.Combine(Directory.GetCurrentDirectory(), Path.GetFileName(formFile.FileName));
-                        using var imageFactory = new ImageFactory();
-                        imageFactory
-                            .Load(formFile.OpenReadStream())
-                            .Resize(new Size(100, 100))
-                            .Save(GetPreviewFilePath(filePath));
-                        await using var stream = System.IO.File.Create(filePath); 
                         await formFile.CopyToAsync(stream);
                     }
+                    
+                    using (var magickImage = new MagickImage(formFile.OpenReadStream()))
+                    {
+                        magickImage.Resize(_resizer);
+                        magickImage.Write(GetPreviewFilePath(filePath));
+                    }
                 }
-            );
+            }
         }
 
         private async Task SaveBase64Image(string requestJson)
@@ -69,16 +80,16 @@ namespace ImageRestApi.Controllers
             var base64Values = JsonConvert.DeserializeObject<List<string>>(requestJson);
             _logger.LogInformation($"Saving {base64Values.Count} base64 images");
 
-            base64Values.ForEach(async base64Value =>
+            foreach (var base64Value in base64Values)
+            {
+                var normalizeBase64 = base64Value;
+                if (normalizeBase64.Contains(','))
                 {
-                    if (base64Value.Contains(','))
-                    {
-                        base64Value = base64Value.Substring(base64Value.IndexOf(",") + 1);
-                    }
-                    var bytes = Convert.FromBase64String(base64Value);
-                    await SaveImage(bytes, "base64");
+                    normalizeBase64 = base64Value.Substring(base64Value.IndexOf(",") + 1);
                 }
-            );
+                var bytes = Convert.FromBase64String(normalizeBase64);
+                await SaveImage(bytes, "base64");
+            }
         }
 
         private async Task DownloadImage(string imageUrl)
@@ -89,7 +100,7 @@ namespace ImageRestApi.Controllers
             }
 
             _logger.LogInformation($"Downloading image by url {imageUrl}");
-            var bytes =await _imageHttpClient.GetByteArrayAsync(imageUrl);
+            var bytes = await _imageHttpClient.GetByteArrayAsync(imageUrl);
 
             await SaveImage(bytes, "url");
         }
@@ -97,13 +108,22 @@ namespace ImageRestApi.Controllers
         private async Task SaveImage(byte[] bytes, string downloadType)
         {
             var filePath = Path.Combine(Directory.GetCurrentDirectory(), Path.GetFileName($"{downloadType}-{Guid.NewGuid().ToString()}.jpg"));
-            await using var memoryStream = new MemoryStream(bytes);
-            await using var stream = System.IO.File.Create(filePath); 
-            using var imageFactory = new ImageFactory();
-            imageFactory.Load(memoryStream)
-                .Resize(new Size(100, 100))
-                .Save(GetPreviewFilePath(filePath));
-            await memoryStream.CopyToAsync(stream);
+            using (var memoryStream = new MemoryStream(bytes))
+            {
+                using (var stream = System.IO.File.Create(filePath))
+                {
+                    await memoryStream.CopyToAsync(stream);
+                }
+            }
+
+            using (var memoryStream = new MemoryStream(bytes))
+            {
+                using (var magickImage = new MagickImage(memoryStream))
+                {
+                    magickImage.Resize(_resizer);
+                    magickImage.Write(GetPreviewFilePath(filePath));
+                }
+            }
         }
 
         private string GetPreviewFilePath(string filePath)

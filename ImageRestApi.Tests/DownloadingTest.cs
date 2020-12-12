@@ -35,7 +35,8 @@ namespace ImageRestApi.Tests
             {
                 GC.Collect(); 
                 GC.WaitForPendingFinalizers(); 
-                files.ForEach(File.Delete);            }        
+                files.ForEach(File.Delete);            
+            }        
         }
     }
 }

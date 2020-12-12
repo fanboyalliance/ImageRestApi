@@ -2,7 +2,6 @@
 using System.Net;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 
 namespace ImageRestApi
@@ -16,7 +15,7 @@ namespace ImageRestApi
             _requestDelegate = requestDelegate;
         }
         
-        public async Task Invoke(HttpContext httpContext, ILogger<ExceptionMiddleware> logger)
+        public async Task Invoke(HttpContext httpContext)
         {
             try
             {
@@ -24,8 +23,6 @@ namespace ImageRestApi
             }
             catch (Exception exception)
             {
-                logger.LogError($"{exception.Message} {exception.StackTrace}");
-
                 var result = JsonConvert.SerializeObject(new {message = "something went wrong"});
                 httpContext.Response.ContentType = "application/json";
                 httpContext.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
