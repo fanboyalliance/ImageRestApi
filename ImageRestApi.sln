@@ -2,6 +2,8 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageRestApi", "ImageRestApi\ImageRestApi.csproj", "{03DBA0C3-6BA7-41DB-A514-81329AE8B9E7}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageRestApi.Tests", "ImageRestApi.Tests\ImageRestApi.Tests.csproj", "{27AFB7BB-A7EB-4FC4-83A9-CC2C878C1395}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -12,5 +14,9 @@ Global
 		{03DBA0C3-6BA7-41DB-A514-81329AE8B9E7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{03DBA0C3-6BA7-41DB-A514-81329AE8B9E7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{03DBA0C3-6BA7-41DB-A514-81329AE8B9E7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{27AFB7BB-A7EB-4FC4-83A9-CC2C878C1395}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{27AFB7BB-A7EB-4FC4-83A9-CC2C878C1395}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{27AFB7BB-A7EB-4FC4-83A9-CC2C878C1395}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{27AFB7BB-A7EB-4FC4-83A9-CC2C878C1395}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
